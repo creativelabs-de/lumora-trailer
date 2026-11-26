@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="robots" content="noindex">
+<title>LUMORA Trailer</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p,iframe{position:absolute;left:0;top:0;width:100%;height:100%;border:0}</style>
+</head>
+<body>
+<div id="p"></div>
+<script>
+/* Hilfsseite für LUMORA: spielt einen YouTube-Trailer stumm ab und meldet der App, wann er läuft.
+   YouTube-Player brauchen eine Webadresse. Die App selbst läuft als Datei, deshalb geht der Player über diese Seite.
+   Aufruf: index.html#v=<YouTube-ID>&s=<Startsekunde>. Keine Daten, kein Tracking. */
+(function () {
+  var h = {};
+  location.hash.slice(1).split('&').forEach(function (kv) { var p = kv.split('='); if (p[0]) h[p[0]] = decodeURIComponent(p[1] || ''); });
+  var id = /^[\w-]{11}$/.test(h.v || '') ? h.v : null, start = Math.max(0, parseInt(h.s, 10) || 0);
+  function tell(s, x) { try { parent.postMessage(JSON.stringify({ lumoraYT: s, info: x === undefined ? null : x }), '*'); } catch (e) { } }
+  if (!id) { tell('error', 'id'); return; }
+  window.onYouTubeIframeAPIReady = function () {
+    new YT.Player('p', {
+      videoId: id, host: 'https://www.youtube-nocookie.com',
+      playerVars: { autoplay: 1, mute: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, playsinline: 1, rel: 0, loop: 1, playlist: id, start: start },
+      events: {
+        onReady: function (e) { e.target.mute(); e.target.playVideo(); tell('ready'); },
+        onStateChange: function (e) { tell(e.data === 1 ? 'playing' : e.data === 0 ? 'ended' : e.data === 2 ? 'paused' : 'state', e.data); },
+        onError: function (e) { tell('error', e.data); }
+      }
+    });
+  };
+  var s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  s.onerror = function () { tell('error', 'api'); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
